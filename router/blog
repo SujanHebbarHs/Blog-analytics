@@ -1,0 +1,48 @@
+const express = require("express");
+const axios = require('axios');
+const _ = require('lodash');
+
+const blogRoute = express.Router();
+
+blogRoute.get('/blog-stats', async (req, res) => {
+    try {
+      // Fetch blog data from the third-party API
+      const response = await axios.get('https://intent-kit-16.hasura.app/api/rest/blogs', {
+        headers: {
+          'x-hasura-admin-secret': '32qR4KmXOIpsGPQKMqEJHGJS27G5s7HdSKO3gdtQd2kv5e852SiYwWNfxkZOBuQ6',
+        },
+      });
+  
+      const blogs = response.data;
+  
+      // Calculate statistics using Lodash
+      const totalBlogs = blogs.length;
+      const longestBlog = _.maxBy(blogs, 'title.length');
+      const blogsWithPrivacy = _.filter(blogs, (blog) => _.includes(blog.title.toLowerCase(), 'privacy'));
+      const uniqueBlogTitles = _.uniqBy(blogs, 'title');
+  
+      // Respond with the statistics in JSON format
+      res.json({
+        totalBlogs,
+        longestBlog: longestBlog.title,
+        blogsWithPrivacy: blogsWithPrivacy.length,
+        uniqueBlogTitles: uniqueBlogTitles.map((blog) => blog.title),
+      });
+    } catch (error) {
+      // Handle errors and respond with an appropriate error message
+      console.error('Error:', error.message);
+      res.status(500).json({ error: 'An error occurred while fetching and analyzing blog data.' });
+    }
+  });
+
+  blogRoute.get('/blog-search', (req, res) => {
+    const query = req.query.query.toLowerCase();
+  
+    // Filter blogs based on the provided query string
+    const filteredBlogs = blogs.filter((blog) => blog.title.toLowerCase().includes(query));
+  
+    // Respond with the filtered blogs in JSON format
+    res.json(filteredBlogs);
+  });
+  
+module.exports = blogRoute;
